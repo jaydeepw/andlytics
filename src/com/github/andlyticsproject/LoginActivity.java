@@ -10,16 +10,21 @@ import android.accounts.AccountManagerCallback;
 import android.accounts.AccountManagerFuture;
 import android.accounts.AuthenticatorException;
 import android.accounts.OperationCanceledException;
+import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
-import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import com.actionbarsherlock.app.SherlockActivity;
@@ -54,14 +59,12 @@ public class LoginActivity extends SherlockActivity {
 	private boolean blockGoingBack = false;
 	private DeveloperAccount selectedAccount = null;
 	private View okButton;
-	private LinearLayout accountList;
+	private ListView mAccountsList;
 
 	private AccountManager accountManager;
 	private DeveloperAccountManager developerAccountManager;
 	private AutosyncHandler syncHandler;
 
-	// TODO Clean this code and res/layout/login.xml up e.g. using a ListView
-	// instead of a LinearLayout
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
@@ -72,10 +75,8 @@ public class LoginActivity extends SherlockActivity {
 		syncHandler = new AutosyncHandler();
 
 		// When called from accounts action item in Main, this flag is passed to
-		// indicate
-		// that LoginActivity should not auto login as we are managing the
-		// accounts,
-		// rather than performing the initial login
+		// indicate that LoginActivity should not auto login as we are managing the
+		// accounts, rather than performing the initial login
 		Bundle extras = getIntent().getExtras();
 		if (extras != null) {
 			manageAccountsMode = extras.getBoolean(LoginActivity.EXTRA_MANAGE_ACCOUNTS_MODE);
@@ -89,7 +90,9 @@ public class LoginActivity extends SherlockActivity {
 
 		setContentView(R.layout.login);
 		setSupportProgressBarIndeterminateVisibility(false);
-		accountList = (LinearLayout) findViewById(R.id.login_input);
+		mAccountsList = (ListView) findViewById(R.id.login_input);
+		mAccountsList.setOnItemClickListener(mItemClickListener);
+		mAccountsList.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
 
 		okButton = findViewById(R.id.login_ok_button);
 		okButton.setClickable(true);
@@ -123,6 +126,9 @@ public class LoginActivity extends SherlockActivity {
 							// Go to the first non hidden account
 							for (DeveloperAccount account : developerAccounts) {
 								if (account.isVisible()) {
+									// If we are using only the first selected item,
+									// should we not use single choice listview?
+									// if agreeable, put a TODO: here.
 									redirectToMain(account.getName(), account.getDeveloperId());
 									break;
 								}
@@ -134,6 +140,45 @@ public class LoginActivity extends SherlockActivity {
 		});
 	}
 
+	/***
+	 * Fires when the listitem is clicked
+	 ****/
+	private AdapterView.OnItemClickListener mItemClickListener = new AdapterView.OnItemClickListener() {
+      @Override
+      public void onItemClick(AdapterView<?> adapter, View rowView, int position,
+            long id) {
+          boolean isChecked = mAccountsList.isItemChecked(position);
+
+    	  Object possiblyViewHolder = rowView.getTag();
+    	  ViewHolder holder = null;
+    	  if(possiblyViewHolder instanceof ViewHolder) {
+    		  holder = (ViewHolder) possiblyViewHolder;
+    		  holder.mSelected.setChecked(isChecked);
+    	  } else
+    		  Log.i(TAG, "not instance of viewholder");
+
+          onAccountSelected(isChecked, position);
+      }
+   };
+   
+   private void onAccountSelected(boolean isChecked, int position) {
+
+ 	  DeveloperAccount account = developerAccounts.get(position);
+		if (isChecked) {
+			account.activate();
+		} else {
+			account.hide();
+		}
+
+		if (manageAccountsMode && account.equals(selectedAccount)) {
+			// If they remove the current account, then stop them
+			// going back
+			blockGoingBack = account.isHidden();
+		}
+
+		okButton.setEnabled(isAtLeastOneAccountEnabled());
+   }
+	
 	@Override
 	protected void onResume() {
 		super.onResume();
@@ -143,10 +188,12 @@ public class LoginActivity extends SherlockActivity {
 		if (!manageAccountsMode & !skipAutologin & selectedAccount != null) {
 			redirectToMain(selectedAccount.getName(), selectedAccount.getDeveloperId());
 		} else {
+			// This method should be called in onCreate.
+			// Not sure of the side effects.
 			showAccountList();
 		}
 	}
-
+	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		super.onCreateOptionsMenu(menu);
@@ -185,12 +232,11 @@ public class LoginActivity extends SherlockActivity {
 		super.onBackPressed();
 	}
 
-	protected void showAccountList() {
+	private void showAccountList() {
 		Account[] googleAccounts = accountManager.getAccountsByType(AutosyncHandler.ACCOUNT_TYPE_GOOGLE);
 		List<DeveloperAccount> dbAccounts = developerAccountManager.getAllDeveloperAccounts();
 		developerAccounts = new ArrayList<DeveloperAccount>();
 
-		accountList.removeAllViews();
 		for (int i = 0; i < googleAccounts.length; i++) {
 			DeveloperAccount developerAccount = DeveloperAccount
 					.createHidden(googleAccounts[i].name);
@@ -199,6 +245,7 @@ public class LoginActivity extends SherlockActivity {
 			if (idx != -1) {
 				developerAccount = dbAccounts.get(idx);
 			}
+			
 			developerAccounts.add(developerAccount);
 
 			// Setup auto sync
@@ -212,35 +259,11 @@ public class LoginActivity extends SherlockActivity {
 				syncHandler.setAutosyncPeriod(googleAccounts[i].name,
 						Preferences.getAutosyncPeriod(this));
 			}
-
-			View accountItem = getLayoutInflater().inflate(R.layout.login_list_item, null);
-			TextView accountName = (TextView) accountItem.findViewById(R.id.login_list_item_text);
-			accountName.setText(googleAccounts[i].name);
-			accountItem.setTag(developerAccount);
-			CheckBox enabled = (CheckBox) accountItem.findViewById(R.id.login_list_item_enabled);
-			enabled.setChecked(!developerAccount.isHidden());
-			enabled.setOnCheckedChangeListener(new OnCheckedChangeListener() {
-				@Override
-				public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-					DeveloperAccount account = (DeveloperAccount) ((View) buttonView.getParent())
-							.getTag();
-					if (isChecked) {
-						account.activate();
-					} else {
-						account.hide();
-					}
-
-					if (manageAccountsMode && account.equals(selectedAccount)) {
-						// If they remove the current account, then stop them
-						// going back
-						blockGoingBack = account.isHidden();
-					}
-
-					okButton.setEnabled(isAtLeastOneAccountEnabled());
-				}
-			});
-			accountList.addView(accountItem);
-		}
+			
+		}	// end for
+		
+		AccountAdaper adapter = new AccountAdaper(this, R.layout.login_list_item, developerAccounts);
+		mAccountsList.setAdapter(adapter);
 
 		// Update ok button
 		okButton.setEnabled(isAtLeastOneAccountEnabled());
@@ -309,5 +332,76 @@ public class LoginActivity extends SherlockActivity {
 		overridePendingTransition(R.anim.activity_fade_in, R.anim.activity_fade_out);
 		finish();
 	}
+	
+	private CompoundButton.OnCheckedChangeListener mCheckedChangeListener = new OnCheckedChangeListener() {
+		@Override
+		public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+			if(buttonView instanceof CheckBox) {
+				CheckBox checkBox = (CheckBox) buttonView;
+				
+				Object possiblyViewHolder = checkBox.getTag();
+	        	ViewHolder holder = null;
+	        	if(possiblyViewHolder instanceof ViewHolder) {
+	        		holder = (ViewHolder) possiblyViewHolder;
+		            onAccountSelected(isChecked, holder.mPosition);
+	        	} else
+	        		Log.i(TAG, "not an instance of viewholder");
+			} else
+				Log.w(TAG, "Expect the clicked view to be instance of " + CheckBox.class.getSimpleName() + " Found: " + buttonView);
+		}
+	};
+	
+	private static class ViewHolder {
+		TextView mAccountName;
+		CheckBox mSelected;
+		int mPosition;
+	}
 
+	private class AccountAdaper extends ArrayAdapter<DeveloperAccount> {
+		private Context context;
+		private List<DeveloperAccount> accounts;
+		private int textViewResourceId;
+
+		public AccountAdaper(Context context, int textViewResourceId,
+				List<DeveloperAccount> objects) {
+			super(context, textViewResourceId, objects);
+			this.context = context;
+			this.accounts = objects;
+			this.textViewResourceId = textViewResourceId;
+		}
+
+		@Override
+		public View getView(int position, View convertView, ViewGroup parent) {
+			View rowView = convertView;
+			ViewHolder holder = null;
+			if (rowView == null) {
+				LayoutInflater inflater = (LayoutInflater) context
+						.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+				holder = new ViewHolder();
+				rowView = inflater.inflate(textViewResourceId, parent, false);
+				holder.mAccountName = (TextView) rowView.findViewById(R.id.login_list_item_text);
+				holder.mSelected = (CheckBox) rowView.findViewById(R.id.login_list_item_enabled);
+				rowView.setTag(holder);
+			} else {
+				holder = (ViewHolder) rowView.getTag();
+			}
+			
+			DeveloperAccount account = accounts.get(position);
+			
+			// save position so as to use it later
+			holder.mPosition = position;
+			
+			// show account name
+			holder.mAccountName.setText(account.getName());
+			
+			// show select/unselect checkbox
+			holder.mSelected.setChecked(!account.isHidden());
+			holder.mSelected.setTag(holder);
+			holder.mSelected.setOnCheckedChangeListener(mCheckedChangeListener);
+			
+			return rowView;
+		}
+
+	}
+	
 }

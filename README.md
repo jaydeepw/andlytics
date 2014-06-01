@@ -79,6 +79,14 @@ Any contributions, large or small, major features, bug fixes, unit/integration t
 
 Translations should be done via [crowdin.net](http://crowdin.net/project/andlytics).
 
+Getting started with contributing
+
+1. Fork the repository
+2. Clone on your machine
+3. Import the project which will import actionbarsherlock as well.
+4. Import Google Play Services library
+5. Complie the project and run.
+
 ## SocialMedia
 
 <a href="https://plus.google.com/103867882342055020019" rel="publisher">Find us on Google+</a>
