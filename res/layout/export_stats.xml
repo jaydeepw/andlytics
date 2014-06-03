@@ -44,7 +44,7 @@
                 android:layout_margin="5dp"
                 android:layout_weight="1"
                 android:background="@drawable/image_button"
-                android:padding="8dp"
+                android:padding="5dp"
                 android:text="@string/cancel"
                 android:textColor="#fff"
                 android:textStyle="bold" />
@@ -60,7 +60,7 @@
                 android:layout_margin="5dp"
                 android:layout_weight="1"
                 android:background="@drawable/image_button"
-                android:padding="8dp"
+                android:padding="5dp"
                 android:text="@string/run_export"
                 android:textColor="#fff"
                 android:textStyle="bold" />
