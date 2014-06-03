@@ -29,71 +29,41 @@
 
         <LinearLayout
             android:id="@+id/export_dialog_buttons"
-            android:layout_width="fill_parent"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
             android:orientation="horizontal">
 
 
-            <RelativeLayout
-                android:id="@+id/export_dialog_export_button"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:layout_margin="5dp"
-                android:layout_weight="1"
-                android:background="@drawable/image_button"
-                android:padding="5dp">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_centerHorizontal="true"
-                    android:layout_centerVertical="true"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        style="@style/MainTableText"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:padding="5dp"
-                        android:text="@string/run_export"
-                        android:textColor="#fff"
-                        android:textStyle="bold" />
-
-                </LinearLayout>
-
-            </RelativeLayout>
-
-            <RelativeLayout
+            <Button
                 android:id="@+id/export_dialog_close_button"
-                android:layout_width="fill_parent"
+                style="@style/MainTableText"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_gravity="center"
                 android:layout_margin="5dp"
                 android:layout_weight="1"
                 android:background="@drawable/image_button"
-                android:padding="5dp">
+                android:padding="8dp"
+                android:text="@string/cancel"
+                android:textColor="#fff"
+                android:textStyle="bold" />
 
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_centerHorizontal="true"
-                    android:layout_centerVertical="true"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        style="@style/MainTableText"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:padding="5dp"
-                        android:text="@string/cancel"
-                        android:textColor="#fff"
-                        android:textStyle="bold" />
-
-                </LinearLayout>
-
-            </RelativeLayout>
+            <!--As of Android 4.0 the positive button has to be
+            on the right hand side-->
+            <Button
+                android:id="@+id/export_dialog_export_button"
+                style="@style/MainTableText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_margin="5dp"
+                android:layout_weight="1"
+                android:background="@drawable/image_button"
+                android:padding="8dp"
+                android:text="@string/run_export"
+                android:textColor="#fff"
+                android:textStyle="bold" />
 
         </LinearLayout>
     </RelativeLayout>
