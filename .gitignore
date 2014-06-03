@@ -21,3 +21,6 @@ proguard/
 local.properties
 secure.properties
 /assets
+
+#Android Studio related files.
+.idea/
